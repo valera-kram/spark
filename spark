@@ -1,0 +1,33 @@
+import time
+import pyspark
+sc = pyspark.SparkContext('local[*]')
+start_time = time.time()
+input_rdd = sc.textFile('graph.txt')
+first_rdd = input_rdd.map(lambda line: tuple(line.split())).map(lambda tmp_line: tuple(map(int, tmp_line)))
+
+# for pair in first_rdd.take(first_rdd.count()):
+#     print(pair)
+    
+first_rdd = first_rdd.map(lambda line: tuple(reversed(line))).union(first_rdd)
+
+second_rdd = first_rdd.cartesian(sc.parallelize(range(int(first_rdd.keys().min()),int(first_rdd.keys().max())+1))).map(lambda line: tuple(reversed(line))) 
+
+res_rdd = first_rdd.join(first_rdd)
+res_rdd = res_rdd.filter(lambda line: line[0] != line[1][0] and line[1][0] != line[1][1] and line[1][1] != line[0])
+res_rdd = res_rdd.intersection(second_rdd)
+print(int(res_rdd.count()/6))
+print("--- %s seconds ---" % (time.time() - start_time))
+
+
+import networkx as nx
+import time
+start_time = time.time()
+G = nx.Graph()
+file = open('graph.txt')
+for line in file:
+    G.add_edge(*tuple(line.split()))
+file.close()
+
+print(nx.triangles(G))
+print(sum(nx.triangles(G).values()) / 3)
+print("--- %s seconds ---" % (time.time() - start_time))
